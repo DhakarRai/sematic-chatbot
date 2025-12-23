@@ -1,64 +1,78 @@
+"""
+faiss_store.py
+
+Render Free SAFE version.
+
+- FAISS index is BUILT LOCALLY (VS Code)
+- NO embeddings computed on server
+- NO index training on server
+- ONLY loads prebuilt FAISS index and chunks
+
+Cosine similarity logic is preserved for future paid upgrade.
+"""
+
 import faiss
 import pickle
 import numpy as np
+import os
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FAISS_DIR = os.path.join(os.path.dirname(BASE_DIR), "faiss_index")
+
+INDEX_PATH = os.path.join(FAISS_DIR, "index.faiss")
+CHUNKS_PATH = os.path.join(FAISS_DIR, "chunks.pkl")
+
+# ======================================================
+# ❌ DISABLED ON RENDER FREE (TRAINING)
+# ======================================================
 def save_faiss(vectors, chunks):
     """
-    Save FAISS index using Inner Product (for cosine similarity).
-    Vectors must be normalized before adding.
+    Disabled on Render Free.
+
+    FAISS index MUST be built locally.
     """
-    dim = vectors.shape[1]
-    
-    # Normalize vectors for cosine similarity
-    faiss.normalize_L2(vectors)
-    
-    # Use IndexFlatIP for cosine similarity (Inner Product of normalized vectors = cosine)
-    index = faiss.IndexFlatIP(dim)
-    index.add(vectors)
+    raise RuntimeError(
+        "save_faiss() is disabled on Render Free. "
+        "Build FAISS index locally using VS Code."
+    )
 
-    faiss.write_index(index, "faiss_index/index.faiss")
-    with open("faiss_index/chunks.pkl", "wb") as f:
-        pickle.dump(chunks, f)
-    
-    print(f"Saved {len(chunks)} chunks with cosine similarity index")
-
+# ======================================================
+# ✅ SAFE: LOAD PREBUILT FAISS
+# ======================================================
 def load_faiss():
-    index = faiss.read_index("faiss_index/index.faiss")
-    with open("faiss_index/chunks.pkl", "rb") as f:
+    if not os.path.exists(INDEX_PATH):
+        raise FileNotFoundError(f"FAISS index not found: {INDEX_PATH}")
+
+    if not os.path.exists(CHUNKS_PATH):
+        raise FileNotFoundError(f"Chunks file not found: {CHUNKS_PATH}")
+
+    index = faiss.read_index(INDEX_PATH)
+
+    with open(CHUNKS_PATH, "rb") as f:
         chunks = pickle.load(f)
+
     return index, chunks
 
+# ======================================================
+# ❌ DISABLED ON RENDER FREE (EMBEDDING SEARCH)
+# ======================================================
 def search_top_k(query_vector, index, chunks, k=5):
     """
-    Search for top-k similar chunks using cosine similarity.
-    
-    Returns:
-        List of tuples: [(chunk, cosine_similarity_score), ...]
-        Score range: -1 to 1 (higher = more similar)
-        
-    Note: FAISS IndexFlatIP returns inner product scores.
-    For normalized vectors, inner product = cosine similarity.
-    """
-    # Normalize query vector
-    query_norm = query_vector / np.linalg.norm(query_vector)
-    query_norm = np.array([query_norm]).astype('float32')
-    
-    # Search returns (scores, indices)
-    scores, indices = index.search(query_norm, k)
-    
-    results = []
-    for i in range(len(indices[0])):
-        idx = indices[0][i]
-        score = scores[0][i]  # This is cosine similarity (0 to 1 for normalized vectors)
-        
-        if idx >= 0 and idx < len(chunks):
-            results.append((chunks[idx], float(score)))
-    
-    return results
+    Disabled on Render Free.
 
-# Keep old search function for backward compatibility
+    Requires embeddings → not allowed on 512MB RAM.
+    """
+    raise RuntimeError(
+        "search_top_k() requires embeddings and is disabled on Render Free."
+    )
+
+# ======================================================
+# ❌ DISABLED (BACKWARD COMPATIBILITY)
+# ======================================================
 def search(query_vector, index, chunks, k=1):
-    results = search_top_k(query_vector, index, chunks, k=k)
-    if results:
-        return results[0][0]
-    return ""
+    """
+    Disabled wrapper.
+    """
+    raise RuntimeError(
+        "search() requires embeddings and is disabled on Render Free."
+    )
