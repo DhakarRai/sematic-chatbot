@@ -50,7 +50,8 @@ GREETING_PATTERNS = {
     "morning", "afternoon", "evening", "night",
     "namaste", "namaskar", "namaskaram",
     "howdy", "greetings", "sup", "wassup", "whatsup", "yo",
-    "hai", "haii", "hlo", "hlw"
+    "hai", "haii", "hlo", "hlw",
+    "how are you", "how r you", "how r u", "hru", "how do you do"
 }
 
 GREETING_RESPONSE = (
@@ -79,6 +80,24 @@ UNRELATED_TOPICS = {
     "joke", "story", "game", "play"
 }
 
+# Synonym mapping to expand search
+SYNONYMS = {
+    "pricing": ["price", "cost", "fee", "subscription", "premium", "trial", "payment"],
+    "cost": ["price", "pricing", "fee", "subscription", "premium", "trial"],
+    "subscribe": ["subscription", "premium", "trial", "plans"],
+    "benefit": ["help", "support", "advantage", "features"],
+    "fees": ["price", "cost", "pricing", "premium"]
+}
+
+def expand_query(question: str) -> str:
+    """Expand query with synonyms for better matching."""
+    words = question.lower().split()
+    expanded = set(words)
+    for word in words:
+        if word in SYNONYMS:
+            expanded.update(SYNONYMS[word])
+    return " ".join(expanded)
+
 def is_unrelated_topic(text: str) -> bool:
     text_lower = text.lower()
     return any(topic in text_lower for topic in UNRELATED_TOPICS)
@@ -89,7 +108,7 @@ def is_greeting(text: str) -> bool:
     if text_clean in GREETING_PATTERNS:
         return True
     words = text_clean.split()
-    if len(words) <= 3:
+    if len(words) <= 4:
         return any(text_clean.startswith(g) for g in GREETING_PATTERNS)
     return False
 
@@ -101,12 +120,16 @@ def keyword_search(question: str, limit: int = 5):
     """
     Word-based search - finds chunks containing ANY of the query words.
     Scores by number of matching words.
+    Uses synonym expansion for better coverage.
     """
+    # Expand query with synonyms first
+    expanded_question = expand_query(question)
+    
     # Clean and split query into words
-    q_words = set(re.sub(r'[^\w\s]', '', question.lower()).split())
+    q_words = set(re.sub(r'[^\w\s]', '', expanded_question.lower()).split())
     
     # Remove common stop words
-    stop_words = {'is', 'the', 'a', 'an', 'and', 'or', 'to', 'for', 'of', 'in', 'on', 'it', 'be', 'this', 'that', 'what', 'how', 'why', 'when', 'where', 'who', 'can', 'do', 'does', 'are', 'was', 'were', 'i', 'me', 'my', 'you', 'your', 'we', 'they'}
+    stop_words = {'is', 'the', 'a', 'an', 'and', 'or', 'to', 'for', 'of', 'in', 'on', 'it', 'be', 'this', 'that', 'what', 'how', 'why', 'when', 'where', 'who', 'can', 'do', 'does', 'are', 'was', 'were', 'i', 'me', 'my', 'you', 'your', 'we', 'they', 'should'}
     q_words = q_words - stop_words
     
     if not q_words:
