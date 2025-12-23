@@ -95,31 +95,84 @@ def is_greeting(text: str) -> bool:
 
 # ============================================
 # SAFE SEARCH (NO EMBEDDINGS – RENDER FREE)
+# Uses word-based matching instead of exact phrase
 # ============================================
-def keyword_search(question: str, limit: int = 3):
-    q = question.lower()
+def keyword_search(question: str, limit: int = 5):
+    """
+    Word-based search - finds chunks containing ANY of the query words.
+    Scores by number of matching words.
+    """
+    # Clean and split query into words
+    q_words = set(re.sub(r'[^\w\s]', '', question.lower()).split())
+    
+    # Remove common stop words
+    stop_words = {'is', 'the', 'a', 'an', 'and', 'or', 'to', 'for', 'of', 'in', 'on', 'it', 'be', 'this', 'that', 'what', 'how', 'why', 'when', 'where', 'who', 'can', 'do', 'does', 'are', 'was', 'were', 'i', 'me', 'my', 'you', 'your', 'we', 'they'}
+    q_words = q_words - stop_words
+    
+    if not q_words:
+        return []
+    
     matches = []
     for chunk in chunks:
-        if q in chunk.lower():
-            matches.append((chunk, 1.0))
-    return matches[:limit]
+        chunk_lower = chunk.lower()
+        chunk_words = set(re.sub(r'[^\w\s]', '', chunk_lower).split())
+        
+        # Count matching words
+        matching_words = q_words & chunk_words
+        if matching_words:
+            # Score = ratio of matching words + length bonus
+            score = len(matching_words) / len(q_words)
+            
+            # Bonus for longer, more complete answers
+            if len(chunk) > 200:
+                score += 0.1
+            
+            matches.append((chunk, score, len(matching_words)))
+    
+    # Sort by score (descending)
+    matches.sort(key=lambda x: (-x[1], -x[2]))
+    
+    return [(chunk, score) for chunk, score, _ in matches[:limit]]
 
 def smart_search(question: str) -> tuple:
+    """
+    Smart search with greeting detection, unrelated topic filtering,
+    and word-based matching for Render Free.
+    """
+    # 1. Check for greetings
     if is_greeting(question):
         return GREETING_RESPONSE, True, 1.0, True
 
+    # 2. Check for unrelated topics
     if is_unrelated_topic(question):
         return FALLBACK_RESPONSE, False, 0.0, False
 
+    # 3. Very short query check
     if len(question.strip()) < 2:
         return CLARIFICATION_RESPONSE, False, 0.0, False
 
+    # 4. Word-based search
     results = keyword_search(question, TOP_K)
+    
+    # Debug print
+    print(f"\n🔍 Query: '{question}'")
+    for i, (chunk, score) in enumerate(results[:3]):
+        print(f"   {i+1}. Score: {score:.2f} | {chunk[:60]}...")
 
     if not results:
         return FALLBACK_RESPONSE, False, 0.0, False
-
+    
     best_chunk, score = results[0]
+    
+    # Apply threshold
+    query_words = len(question.split())
+    threshold = STRICT_THRESHOLD if query_words < 3 else SIMILARITY_THRESHOLD
+    
+    if score < threshold:
+        print(f"   ❌ Score {score:.2f} below threshold {threshold}")
+        return FALLBACK_RESPONSE, False, score, False
+    
+    print(f"   ✅ Returning answer with score {score:.2f}")
     return best_chunk, False, score, True
 
 class Question(BaseModel):
