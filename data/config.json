@@ -1,0 +1,30 @@
+{
+    "app_name": "Nova My Mentor",
+    "tagline": "Your AI Learning Companion",
+    "logo_emoji": "🎓",
+    "welcome_message": "Hello! 👋 I'm Nova, your personal AI mentor! Ask me anything about Nova My Mentor - features, pricing, how it helps students, parents, and more. How can I help you today?",
+    "quick_buttons": [
+        {
+            "label": "❓ What is Nova",
+            "question": "What is Nova?"
+        },
+        {
+            "label": "📚 For Students",
+            "question": "How does Nova help students?"
+        },
+        {
+            "label": "👨‍👩‍👧 For Parents",
+            "question": "How does Nova help parents?"
+        },
+        {
+            "label": "🎯 Grades",
+            "question": "What grades does Nova support?"
+        },
+        {
+            "label": "💰 Pricing",
+            "question": "What is the pricing?"
+        }
+    ],
+    "placeholder": "Ask about Nova My Mentor...",
+    "footer": "Powered by Nova My Mentor AI"
+}
