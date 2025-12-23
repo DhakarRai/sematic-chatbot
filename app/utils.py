@@ -1,23 +1,34 @@
 def chunk_text(text, chunk_size=400, overlap=50):
     """
     Split text into chunks.
-    For small data: splits by lines (each line = 1 chunk)
-    For large data: splits by character count with overlap
+
+    - For small data:
+      Splits by lines (each meaningful line = 1 chunk)
+
+    - For large data:
+      Splits by character count with overlap
     """
-    # First, try splitting by lines (better for small data)
-    lines = [line.strip() for line in text.strip().split('\n') if line.strip()]
-    
-    # If we have multiple meaningful lines, use line-based chunking
+
+    if not text:
+        return []
+
+    # First, try splitting by lines (best for small structured data)
+    lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
+
+    # If multiple meaningful lines exist, use line-based chunking
     if len(lines) >= 3:
         return lines
-    
-    # For large text without clear line breaks, use character-based chunking
+
+    # Otherwise, use character-based chunking (for long text)
     chunks = []
     start = 0
+    text_length = len(text)
 
-    while start < len(text):
+    while start < text_length:
         end = start + chunk_size
-        chunks.append(text[start:end])
-        start = end - overlap
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        start = max(end - overlap, 0)
 
     return chunks
